@@ -31,10 +31,16 @@ class SampleLibrary
       # apply all filters
       result = @samples
       filter.each do |k,v|
-        result = result.find_all{|s| s.send(k) == v}
+        if ARRAY_KEYS.include?(k)
+          result = result.find_all{|s| s.send(k).map(&:upcase).include?(v.upcase)}
+        else
+          result = result.find_all{|s| s.send(k) == v}
+        end
       end
       result
     end
+
+    ARRAY_KEYS=[:instruments]
 
   end
 
