@@ -16,7 +16,6 @@ class SampleLibrary
 
     def initialize(package_id)
       @id = package_id
-      request
     end
 
     def request
@@ -26,7 +25,7 @@ class SampleLibrary
     # returns a filtered list of samples in the package
     # samples(type: 'loop')
     def samples(filter={})
-      @samples ||= request.map{|jtxt| Sample.new(ActiveSupport::HashWithIndifferentAccess.new(jtxt))} # .to_hash_by('_id')
+      @samples ||= request.map{|jtxt| Sample.new(self, ActiveSupport::HashWithIndifferentAccess.new(jtxt))} # .to_hash_by('_id')
 
       # apply all filters
       result = @samples
@@ -46,8 +45,20 @@ class SampleLibrary
 
   class Sample < OpenStruct
 
-    def initialize(*args)
-      super
+    def initialize(package, hash={})
+      @package = package
+      super hash
+    end
+
+    BASE_PATH = 'packages'
+
+    def path
+      File.join(BASE_PATH)
+    end
+
+
+    def download
+
     end
 
   end
