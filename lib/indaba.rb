@@ -14,6 +14,8 @@ class SampleLibrary
 
   class Package
 
+    attr_accessor :id
+
     def initialize(package_id)
       @id = package_id
     end
@@ -52,13 +54,36 @@ class SampleLibrary
 
     BASE_PATH = 'packages'
 
-    def path
-      File.join(BASE_PATH)
+    def path(format='mp3')
+      File.join(BASE_PATH, @package.id, [name, format].join('.'))
     end
 
+    def wav_key
+      s3_key
+    end
 
+    def mp3_key
+      s3_key.gsub(/(wav)$/, 'mp3')
+    end
+
+    DOWNLOAD_HOST='d34x6xks9kc6p2.cloudfront.net'
     def download
+      FileUtils.mkdir_p(File.join(BASE_PATH,@package.id))
 
+      # path must be absolute path '/foo'
+      uri = URI::HTTP.build(scheme: 'https', host: DOWNLOAD_HOST, path: '/' + mp3_key )
+
+      Net::HTTP.start(uri.host, uri.port) do |http|
+        request = Net::HTTP::Get.new uri
+
+        http.request request do |response|
+          open path , 'w' do |io|
+            response.read_body do |chunk|
+              io.write chunk
+            end
+          end
+        end
+      end
     end
 
   end
