@@ -33,7 +33,7 @@ class SampleLibrary
     # returns a filtered list of samples in the package
     # samples(type: 'loop')
     def samples(filter={})
-      @samples ||= request.map{|jtxt| Sample.new(self, ActiveSupport::HashWithIndifferentAccess.new(jtxt))} # .to_hash_by('_id')
+      @samples ||= request.map{|jtxt| Sample.new(self, ActiveSupport::HashWithIndifferentAccess.new(jtxt))}
 
       # apply all filters
       result = @samples
@@ -126,29 +126,6 @@ class SampleLibrary
 
 end
 
-class Array
-  def to_hash_by(key_method=:id, &block)
-
-    each_with_object(Hash.new) do |item,hash|
-
-      if item.respond_to?(key_method)
-        key = item.send(key_method)
-      elsif item.kind_of?(Hash)
-        key = item[key_method]
-      end
-
-      if item && block_given?
-        item = block.call(item)
-      end
-
-      if key && item
-        hash[ key ] = item
-      end
-    end
-
-  end
-end
-
 pkg_id = ENV['PACKAGE'] || '54cd09b0e4b05f58f99c4675'
 
 cmd = ARGV.shift
@@ -170,14 +147,17 @@ if pkg.valid?
       puts "#{shots.length} drum one-shots"
     end
   when 'download'
-    sample_type = ARGV.shift
-    case sample_type
-    when 'loop', 'loops'
-      puts "Downloading #{loops.length} samples"
-      loops.each &:download
-    when 'shots', 'one-shots'
-      puts "Downloading #{shots.length} samples"
-      shots.each &:download
+    if ARGV.any?
+      while sample_type = ARGV.shift do
+        case sample_type
+        when 'loop', 'loops'
+          puts "Downloading #{loops.length} samples"
+          loops.each &:download
+        when 'shots', 'one-shots'
+          puts "Downloading #{shots.length} samples"
+          shots.each &:download
+        end
+      end
     else
       puts "specify which type of samples you want to download (one-shots, loops)"
     end
