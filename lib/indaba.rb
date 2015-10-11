@@ -18,10 +18,16 @@ class SampleLibrary
 
     def initialize(package_id)
       @id = package_id
+      request
     end
 
     def request
+      puts "Downloading metadata for package #{@id}..." unless @raw
       @raw ||= SampleLibrary::request(package_id: @id)
+    end
+
+    def valid?
+      @raw.present?
     end
 
     # returns a filtered list of samples in the package
@@ -67,8 +73,19 @@ class SampleLibrary
     end
 
     DOWNLOAD_HOST='d34x6xks9kc6p2.cloudfront.net'
-    def download
+    def download(force=false)
       FileUtils.mkdir_p(File.join(BASE_PATH,@package.id))
+
+      if File.exist?(path)
+        if force
+          puts "Re-downloading #{path}"
+        else
+          puts "File #{path} already downloaded"
+          return
+        end
+      else
+        puts "Downloading #{path}"
+      end
 
       # path must be absolute path '/foo'
       uri = URI::HTTP.build(scheme: 'https', host: DOWNLOAD_HOST, path: '/' + mp3_key )
@@ -101,6 +118,9 @@ class SampleLibrary
 
     if response.code == "200"
       return JSON.parse(response.body)
+    else
+      puts "Request #{uri.to_s} failed with error #{response.code}"
+      return nil
     end
   end
 
@@ -129,12 +149,48 @@ class Array
   end
 end
 
-pkg = SampleLibrary::Package.new('54cd09b0e4b05f58f99c4675')
+pkg_id = ENV['PACKAGE'] || '54cd09b0e4b05f58f99c4675'
 
-binding.pry
+cmd = ARGV.shift
+
+pkg = SampleLibrary::Package.new(pkg_id)
+
+if pkg.valid?
+
+  loops = pkg.samples(type: 'loop', instruments: 'drums')
+  shots = pkg.samples(type: 'one_shot', instruments: 'drums')
+
+  case cmd
+  when 'summary'
+    puts "summary of package #{pkg_id}"
+    if loops.any?
+      puts "#{loops.length} drum loops"
+    end
+    if shots.any?
+      puts "#{shots.length} drum one-shots"
+    end
+  when 'download'
+    sample_type = ARGV.shift
+    case sample_type
+    when 'loop', 'loops'
+      puts "Downloading #{loops.length} samples"
+      loops.each &:download
+    when 'shots', 'one-shots'
+      puts "Downloading #{shots.length} samples"
+      shots.each &:download
+    else
+      puts "specify which type of samples you want to download (one-shots, loops)"
+    end
+  else
+    puts "unrecognized command #{cmd}"
+  end
+else
+  puts "Unable to retrieve package #{pkg_id}" and exit
+end
 
 __END__
 
+a sample Sample
 {
   "_id"=>"54cbca61e4b01a682b799d0d",
  "song_name"=>"Free",
